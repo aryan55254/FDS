@@ -1,0 +1,1552 @@
+{
+    "info": {
+        "name": "FDS - Financial Ledger API",
+        "description": "Complete test collection for the Financial Data System API.\n\nFully automated — just hit Run Collection, everything passes green.\nCookies and transaction IDs are captured automatically via test scripts.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "BASE_URL",
+            "value": "http://localhost:3000",
+            "type": "string"
+        },
+        {
+            "key": "soft_delete_tx_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "hard_delete_tx_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "admin_email",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "admin_pass",
+            "value": "admin123",
+            "type": "string"
+        },
+        {
+            "key": "analyst_email",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "analyst_pass",
+            "value": "analyst123",
+            "type": "string"
+        },
+        {
+            "key": "viewer_email",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "viewer_pass",
+            "value": "viewer123",
+            "type": "string"
+        },
+        {
+            "key": "prev_balance",
+            "value": "0",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "1. Auth",
+            "description": "Identity & Session Management — Public routes",
+            "item": [
+                {
+                    "name": "1.1 Register Admin User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"admin_{{$timestamp}}\",\n  \"email\": \"admin_{{$timestamp}}@test.com\",\n  \"password\": \"admin123\",\n  \"role\": \"admin\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/auth/register",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "register"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "pm.test('User created with admin role', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    pm.expect(json.success).to.be.true;",
+                                    "    pm.expect(json.data.role).to.eql('admin');",
+                                    "    pm.collectionVariables.set('admin_email', json.data.email);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "1.2 Register Analyst User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"analyst_{{$timestamp}}\",\n  \"email\": \"analyst_{{$timestamp}}@test.com\",\n  \"password\": \"analyst123\",\n  \"role\": \"analyst\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/auth/register",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "register"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "pm.test('User created with analyst role', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    pm.expect(json.data.role).to.eql('analyst');",
+                                    "    pm.collectionVariables.set('analyst_email', json.data.email);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "1.3 Register Viewer User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"viewer_{{$timestamp}}\",\n  \"email\": \"viewer_{{$timestamp}}@test.com\",\n  \"password\": \"viewer123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/auth/register",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "register"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "pm.test('Defaults to viewer role', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    pm.expect(json.data.role).to.eql('viewer');",
+                                    "    pm.collectionVariables.set('viewer_email', json.data.email);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "1.4 Register Duplicate (should fail 409)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"admin_user\",\n  \"email\": \"{{admin_email}}\",\n  \"password\": \"admin123\",\n  \"role\": \"admin\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/auth/register",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "register"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 409 Conflict', function () {",
+                                    "    pm.response.to.have.status(409);",
+                                    "});",
+                                    "pm.test('Duplicate user rejected', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    pm.expect(json.success).to.be.false;",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "1.5 Register Bad Input (should fail 400)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"ab\",\n  \"email\": \"not-an-email\",\n  \"password\": \"12\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/auth/register",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "register"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 400 Bad Request', function () {",
+                                    "    pm.response.to.have.status(400);",
+                                    "});",
+                                    "pm.test('Zod validation errors returned', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    pm.expect(json.errors).to.be.an('array').that.is.not.empty;",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "1.6 Login as Admin",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{admin_email}}\",\n  \"password\": \"{{admin_pass}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/auth/login",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('Login successful', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    pm.expect(json.success).to.be.true;",
+                                    "    pm.expect(json.data.role).to.eql('admin');",
+                                    "});",
+                                    "pm.test('Cookie is set', function () {",
+                                    "    pm.expect(pm.cookies.has('token')).to.be.true;",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "1.7 Login Bad Credentials (should fail 401)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{admin_email}}\",\n  \"password\": \"wrongpassword\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/auth/login",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 401', function () {",
+                                    "    pm.response.to.have.status(401);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "2. Transactions (as Admin)",
+            "description": "Financial Ledger Management — Admin Only. Must be logged in as admin.",
+            "item": [
+                {
+                    "name": "2.1 Deposit 5000",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": 5000\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/deposit",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "deposit"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "pm.test('Balance increased by 5000', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    pm.expect(json.data.current_balance).to.be.a('number');",
+                                    "    pm.collectionVariables.set('prev_balance', json.data.current_balance);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "2.2 Deposit 3000",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": 3000\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/deposit",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "deposit"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "pm.test('Balance increased by 3000', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    var prev = parseInt(pm.collectionVariables.get('prev_balance'));",
+                                    "    pm.expect(json.data.current_balance).to.eql(prev + 3000);",
+                                    "    pm.collectionVariables.set('prev_balance', json.data.current_balance);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "2.3 Deposit 1500",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": 1500\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/deposit",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "deposit"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "pm.test('Balance increased by 1500', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    var prev = parseInt(pm.collectionVariables.get('prev_balance'));",
+                                    "    pm.expect(json.data.current_balance).to.eql(prev + 1500);",
+                                    "    pm.collectionVariables.set('prev_balance', json.data.current_balance);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "2.4 Withdraw 2000",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": 2000\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/withdraw",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "withdraw"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "pm.test('Balance decreased by 2000', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    var prev = parseInt(pm.collectionVariables.get('prev_balance'));",
+                                    "    pm.expect(json.data.current_balance).to.eql(prev - 2000);",
+                                    "    pm.collectionVariables.set('prev_balance', json.data.current_balance);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "2.5 Withdraw 500",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": 500\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/withdraw",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "withdraw"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "pm.test('Balance decreased by 500', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    var prev = parseInt(pm.collectionVariables.get('prev_balance'));",
+                                    "    pm.expect(json.data.current_balance).to.eql(prev - 500);",
+                                    "    pm.collectionVariables.set('prev_balance', json.data.current_balance);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "2.6 Withdraw Insufficient (should fail 400)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": 999999\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/withdraw",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "withdraw"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 400', function () {",
+                                    "    pm.response.to.have.status(400);",
+                                    "});",
+                                    "pm.test('Insufficient balance', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    pm.expect(json.message).to.include('Insufficient');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "2.7 Deposit Bad Input (should fail 400)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": \"not_a_number\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/deposit",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "deposit"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 400', function () {",
+                                    "    pm.response.to.have.status(400);",
+                                    "});",
+                                    "pm.test('Zod rejects non-numeric input', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    pm.expect(json.errors).to.be.an('array');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "2.8 Deposit Negative (should fail 400)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": -100\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/deposit",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "deposit"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 400', function () {",
+                                    "    pm.response.to.have.status(400);",
+                                    "});",
+                                    "pm.test('Zod rejects negative amount', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    pm.expect(json.errors).to.be.an('array');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "2.9 Deposit 100 (for soft-delete test)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": 100\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/deposit",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "deposit"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "var json = pm.response.json();",
+                                    "pm.collectionVariables.set('soft_delete_tx_id', json.data.transaction_id);",
+                                    "pm.test('Captured tx ID for soft-delete', function () {",
+                                    "    pm.expect(json.data.transaction_id).to.be.a('string');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "2.10 Deposit 200 (for hard-delete test)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": 200\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/deposit",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "deposit"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "var json = pm.response.json();",
+                                    "pm.collectionVariables.set('hard_delete_tx_id', json.data.transaction_id);",
+                                    "pm.test('Captured tx ID for hard-delete', function () {",
+                                    "    pm.expect(json.data.transaction_id).to.be.a('string');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "3. Dashboard (as Admin)",
+            "description": "Dashboard views — All authenticated roles.",
+            "item": [
+                {
+                    "name": "3.1 Summary (balance + 10 recent)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/dashboard/summary",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "dashboard",
+                                "summary"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('Has balance and transactions', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    pm.expect(json.data).to.have.property('current_balance');",
+                                    "    pm.expect(json.data.recent_transactions).to.be.an('array');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "3.2 Recent Deposits",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/dashboard/recent-deposits",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "dashboard",
+                                "recent-deposits"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('All are income type', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    json.data.recent_deposits.forEach(function(tx) {",
+                                    "        pm.expect(tx.type).to.eql('income');",
+                                    "    });",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "3.3 Recent Withdrawals",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/dashboard/recent-withdrawals",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "dashboard",
+                                "recent-withdrawals"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('All are withdrawal type', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    json.data.recent_withdrawals.forEach(function(tx) {",
+                                    "        pm.expect(tx.type).to.eql('withdrawal');",
+                                    "    });",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "4. Filters (as Admin)",
+            "description": "Advanced Data Analysis — Admin & Analyst only.",
+            "item": [
+                {
+                    "name": "4.1 Filter Min (amount > 2000)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/filter/min/2000",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "filter",
+                                "min",
+                                "2000"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('All amounts > 2000', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    json.data.forEach(function(tx) {",
+                                    "        pm.expect(tx.amount).to.be.above(2000);",
+                                    "    });",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "4.2 Filter Max (amount < 2000)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/filter/max/2000",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "filter",
+                                "max",
+                                "2000"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('All amounts < 2000', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    json.data.forEach(function(tx) {",
+                                    "        pm.expect(tx.amount).to.be.below(2000);",
+                                    "    });",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "4.3 Search Exact (amount = 5000)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/search/5000",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "search",
+                                "5000"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('All amounts equal 5000', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    pm.expect(json.data.length).to.be.above(0);",
+                                    "    json.data.forEach(function(tx) {",
+                                    "        pm.expect(tx.amount).to.eql(5000);",
+                                    "    });",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "5. Soft & Hard Delete (as Admin)",
+            "description": "Delete operations using auto-captured transaction IDs.",
+            "item": [
+                {
+                    "name": "5.1 Soft Delete Transaction",
+                    "request": {
+                        "method": "PATCH",
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/{{soft_delete_tx_id}}/soft-delete",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "{{soft_delete_tx_id}}",
+                                "soft-delete"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('Soft delete confirmed', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    pm.expect(json.message).to.include('soft-deleted');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "5.2 Verify Soft Delete (check summary)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/dashboard/summary",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "dashboard",
+                                "summary"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('Soft-deleted tx not in list', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    var deletedId = pm.collectionVariables.get('soft_delete_tx_id');",
+                                    "    var ids = json.data.recent_transactions.map(function(tx) { return tx.id; });",
+                                    "    pm.expect(ids).to.not.include(deletedId);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "5.3 Hard Delete Transaction",
+                    "request": {
+                        "method": "DELETE",
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/{{hard_delete_tx_id}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "{{hard_delete_tx_id}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('Hard delete confirmed', function () {",
+                                    "    var json = pm.response.json();",
+                                    "    pm.expect(json.message).to.include('permanently deleted');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "6. Role Access Tests",
+            "description": "Test RBAC by switching users.",
+            "item": [
+                {
+                    "name": "6.1 Logout",
+                    "request": {
+                        "method": "POST",
+                        "url": {
+                            "raw": "{{BASE_URL}}/auth/logout",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "logout"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.2 Login as Viewer",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{viewer_email}}\",\n  \"password\": \"{{viewer_pass}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/auth/login",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.3 Viewer → Dashboard (should work 200)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/dashboard/summary",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "dashboard",
+                                "summary"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200 — viewer can access dashboard', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.4 Viewer → Deposit (should fail 403)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": 100\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/deposit",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "deposit"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 403 — viewer blocked from deposits', function () {",
+                                    "    pm.response.to.have.status(403);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.5 Viewer → Filter (should fail 403)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/filter/min/100",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "filter",
+                                "min",
+                                "100"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 403 — viewer blocked from filters', function () {",
+                                    "    pm.response.to.have.status(403);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.6 Logout",
+                    "request": {
+                        "method": "POST",
+                        "url": {
+                            "raw": "{{BASE_URL}}/auth/logout",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "logout"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.7 Login as Analyst",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{analyst_email}}\",\n  \"password\": \"{{analyst_pass}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/auth/login",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.8 Analyst → Dashboard (should work 200)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/dashboard/summary",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "dashboard",
+                                "summary"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200 — analyst can access dashboard', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.9 Analyst → Filter (should work 200)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/filter/min/100",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "filter",
+                                "min",
+                                "100"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200 — analyst can access filters', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.10 Analyst → Deposit (should fail 403)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": 100\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/deposit",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "deposit"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 403 — analyst blocked from deposits', function () {",
+                                    "    pm.response.to.have.status(403);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.11 Logout (clear session)",
+                    "request": {
+                        "method": "POST",
+                        "url": {
+                            "raw": "{{BASE_URL}}/auth/logout",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "logout"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.12 No Auth → Dashboard (should fail 401)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/dashboard/summary",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "dashboard",
+                                "summary"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 401 — no token', function () {",
+                                    "    pm.response.to.have.status(401);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
