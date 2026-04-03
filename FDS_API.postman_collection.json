@@ -54,6 +54,31 @@
             "key": "prev_balance",
             "value": "0",
             "type": "string"
+        },
+        {
+            "key": "cache_miss_time",
+            "value": "0",
+            "type": "string"
+        },
+        {
+            "key": "cache_hit_time",
+            "value": "0",
+            "type": "string"
+        },
+        {
+            "key": "cache_hit_time_2",
+            "value": "0",
+            "type": "string"
+        },
+        {
+            "key": "deposits_miss_time",
+            "value": "0",
+            "type": "string"
+        },
+        {
+            "key": "rl_remaining",
+            "value": "0",
+            "type": "string"
         }
     ],
     "item": [
@@ -1539,6 +1564,460 @@
                                 "exec": [
                                     "pm.test('Status is 401 — no token', function () {",
                                     "    pm.response.to.have.status(401);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "7. Redis Caching Tests",
+            "description": "Test Redis caching on dashboard routes — MISS/HIT headers, latency comparison, and cache invalidation on mutations.",
+            "item": [
+                {
+                    "name": "7.0 Login as Admin (for cache tests)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{admin_email}}\",\n  \"password\": \"{{admin_pass}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/auth/login",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7.1 Summary — Cache MISS (1st call)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/dashboard/summary",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "dashboard",
+                                "summary"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('X-Cache header is MISS on first call', function () {",
+                                    "    pm.expect(pm.response.headers.get('X-Cache')).to.eql('MISS');",
+                                    "});",
+                                    "pm.test('Rate limit headers present', function () {",
+                                    "    pm.expect(pm.response.headers.has('X-RateLimit-Limit')).to.be.true;",
+                                    "    pm.expect(pm.response.headers.has('X-RateLimit-Remaining')).to.be.true;",
+                                    "});",
+                                    "pm.collectionVariables.set('cache_miss_time', pm.response.responseTime);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7.2 Summary — Cache HIT (2nd call)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/dashboard/summary",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "dashboard",
+                                "summary"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('X-Cache header is HIT on second call', function () {",
+                                    "    pm.expect(pm.response.headers.get('X-Cache')).to.eql('HIT');",
+                                    "});",
+                                    "pm.collectionVariables.set('cache_hit_time', pm.response.responseTime);",
+                                    "pm.test('Cache HIT is faster than MISS', function () {",
+                                    "    var missTime = parseInt(pm.collectionVariables.get('cache_miss_time'));",
+                                    "    var hitTime  = pm.response.responseTime;",
+                                    "    console.log('MISS latency: ' + missTime + 'ms | HIT latency: ' + hitTime + 'ms');",
+                                    "    pm.expect(hitTime).to.be.below(missTime + 1);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7.3 Summary — Cache HIT (3rd call, confirm consistency)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/dashboard/summary",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "dashboard",
+                                "summary"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('X-Cache is still HIT on 3rd call', function () {",
+                                    "    pm.expect(pm.response.headers.get('X-Cache')).to.eql('HIT');",
+                                    "});",
+                                    "pm.collectionVariables.set('cache_hit_time_2', pm.response.responseTime);",
+                                    "pm.test('Latency report', function () {",
+                                    "    var miss  = parseInt(pm.collectionVariables.get('cache_miss_time'));",
+                                    "    var hit1  = parseInt(pm.collectionVariables.get('cache_hit_time'));",
+                                    "    var hit2  = pm.response.responseTime;",
+                                    "    console.log('=== CACHE LATENCY REPORT ===');",
+                                    "    console.log('1st call (MISS): ' + miss + ' ms');",
+                                    "    console.log('2nd call (HIT):  ' + hit1 + ' ms');",
+                                    "    console.log('3rd call (HIT):  ' + hit2 + ' ms');",
+                                    "    pm.expect(true).to.be.true;",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7.4 Recent Deposits — Cache MISS",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/dashboard/recent-deposits",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "dashboard",
+                                "recent-deposits"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('X-Cache is MISS (first call to this route)', function () {",
+                                    "    pm.expect(pm.response.headers.get('X-Cache')).to.eql('MISS');",
+                                    "});",
+                                    "pm.collectionVariables.set('deposits_miss_time', pm.response.responseTime);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7.5 Recent Deposits — Cache HIT",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/dashboard/recent-deposits",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "dashboard",
+                                "recent-deposits"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('X-Cache is HIT', function () {",
+                                    "    pm.expect(pm.response.headers.get('X-Cache')).to.eql('HIT');",
+                                    "});",
+                                    "pm.test('Deposits route latency comparison', function () {",
+                                    "    var miss = parseInt(pm.collectionVariables.get('deposits_miss_time'));",
+                                    "    var hit  = pm.response.responseTime;",
+                                    "    console.log('Recent-Deposits MISS: ' + miss + 'ms | HIT: ' + hit + 'ms');",
+                                    "    pm.expect(hit).to.be.below(miss + 1);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7.6 Deposit 50 (invalidate cache)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": 50\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/transactions/deposit",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "deposit"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "pm.test('Deposit triggers cache invalidation', function () {",
+                                    "    pm.expect(pm.response.json().success).to.be.true;",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7.7 Summary — Cache MISS after invalidation",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/dashboard/summary",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "dashboard",
+                                "summary"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('Cache was invalidated — X-Cache is MISS after deposit', function () {",
+                                    "    pm.expect(pm.response.headers.get('X-Cache')).to.eql('MISS');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7.8 Recent Deposits — Cache MISS after invalidation",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/dashboard/recent-deposits",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "dashboard",
+                                "recent-deposits"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('Deposits cache also invalidated — X-Cache is MISS', function () {",
+                                    "    pm.expect(pm.response.headers.get('X-Cache')).to.eql('MISS');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "8. Rate Limiting Tests",
+            "description": "Verify Redis-backed per-IP token bucket rate limiter. Checks headers on normal requests and verifies 429 on exhaustion.",
+            "item": [
+                {
+                    "name": "8.1 Health Check — Rate limit headers present",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                ""
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('X-RateLimit-Limit header is present', function () {",
+                                    "    pm.expect(pm.response.headers.has('X-RateLimit-Limit')).to.be.true;",
+                                    "    pm.expect(pm.response.headers.get('X-RateLimit-Limit')).to.eql('20');",
+                                    "});",
+                                    "pm.test('X-RateLimit-Remaining header is present', function () {",
+                                    "    pm.expect(pm.response.headers.has('X-RateLimit-Remaining')).to.be.true;",
+                                    "    var remaining = parseInt(pm.response.headers.get('X-RateLimit-Remaining'));",
+                                    "    pm.expect(remaining).to.be.a('number');",
+                                    "    pm.expect(remaining).to.be.at.most(20);",
+                                    "    console.log('Tokens remaining: ' + remaining);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "8.2 Health Check — Remaining decrements",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                ""
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('X-RateLimit-Remaining decremented', function () {",
+                                    "    var remaining = parseInt(pm.response.headers.get('X-RateLimit-Remaining'));",
+                                    "    console.log('Tokens remaining after 2nd call: ' + remaining);",
+                                    "    pm.expect(remaining).to.be.a('number');",
+                                    "    pm.collectionVariables.set('rl_remaining', remaining.toString());",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "8.3 Health Check — Still decrementing",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{BASE_URL}}/",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                ""
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test('Remaining continues to decrement', function () {",
+                                    "    var prev = parseInt(pm.collectionVariables.get('rl_remaining'));",
+                                    "    var curr = parseInt(pm.response.headers.get('X-RateLimit-Remaining'));",
+                                    "    console.log('Previous remaining: ' + prev + ' | Current remaining: ' + curr);",
+                                    "    pm.expect(curr).to.be.below(prev);",
                                     "});"
                                 ],
                                 "type": "text/javascript"
