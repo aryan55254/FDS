@@ -7,6 +7,7 @@ import { AppDataSource } from "../config/data-source";
 import { Record } from "../entities/Record";
 import { Transaction, TransactionType } from "../entities/Transaction";
 import { MoreThan, LessThan } from "typeorm";
+import { invalidateCache } from "../middlewares/cache.middleware";
 
 const recordRepo = () => AppDataSource.getRepository(Record);
 const txRepo = () => AppDataSource.getRepository(Transaction);
@@ -48,6 +49,9 @@ export const deposit = async (req: Request, res: Response): Promise<void> => {
         });
         await txRepo().save(tx);
 
+        // Invalidate dashboard cache after balance change
+        await invalidateCache("cache:/dashboard/*");
+
         res.status(201).json({
             success: true,
             message: "Deposit successful.",
@@ -86,6 +90,9 @@ export const withdraw = async (req: Request, res: Response): Promise<void> => {
         });
         await txRepo().save(tx);
 
+        // Invalidate dashboard cache after balance change
+        await invalidateCache("cache:/dashboard/*");
+
         res.status(201).json({
             success: true,
             message: "Withdrawal successful.",
@@ -114,6 +121,8 @@ export const softDelete = async (req: Request, res: Response): Promise<void> => 
         tx.is_deleted = true;
         await txRepo().save(tx);
 
+        await invalidateCache("cache:/dashboard/*");
+
         res.status(200).json({ success: true, message: "Transaction soft-deleted." });
     } catch (error) {
         console.error("Soft delete error:", error);
@@ -136,6 +145,8 @@ export const hardDelete = async (req: Request, res: Response): Promise<void> => 
         }
 
         await txRepo().remove(tx);
+
+        await invalidateCache("cache:/dashboard/*");
 
         res.status(200).json({ success: true, message: "Transaction permanently deleted." });
     } catch (error) {
