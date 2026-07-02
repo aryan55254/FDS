@@ -222,6 +222,54 @@ Invalid inputs return a `400` response with structured error messages:
 
 ---
 
+## Frontend UI & API Versioning
+
+A lightweight browser-based UI is available at the app root so you can register, log in, and test deposit/withdraw actions without Postman.
+
+The API is exposed under versioned routes for clarity and future growth:
+
+- `/api/v1/auth`
+- `/api/v1/transactions`
+- `/api/v1/dashboard`
+
+Legacy routes remain available for compatibility.
+
+## Scalability Note
+
+The current structure is ready for growth through modular services and shared infrastructure:
+
+- Split authentication, ledger, and dashboard responsibilities into separate services as traffic grows.
+- Use Redis for read-heavy caching and rate limiting.
+- Add load balancing and horizontal scaling behind a reverse proxy such as Nginx or a managed cloud gateway.
+- Keep the database access layer and validation rules centralized so new modules can be added without duplicating logic.
+
+## Docker Services (DB + Cache)
+
+The Compose stack now manages only infrastructure services (PostgreSQL and Redis). The application server and UI are run separately during development.
+
+Start the database and cache:
+
+```bash
+docker compose up -d
+```
+
+This will start:
+
+- PostgreSQL on port 5432
+- Redis on port 6379
+
+Stop the services:
+
+```bash
+docker compose down
+```
+
+Remove the database volume as well:
+
+```bash
+docker compose down -v
+```
+
 ## Setup
 
 1. Clone the repository
@@ -253,13 +301,45 @@ JWT_EXPIRES_IN=1d
 REDIS_URL=redis://localhost:6379
 ```
 
-4. Start the development server
+4. Start the development servers (separate UI and backend)
+
+Run the infrastructure (Postgres + Redis) in Docker:
+
+```bash
+docker compose up -d
+```
+
+Run the backend API locally (TypeScript, nodemon):
 
 ```bash
 npm run dev
 ```
 
-The server will connect to the database, auto-sync the schema, and start listening on the configured port.
+Backend default: `http://localhost:3000`
+
+Run the frontend dev server (Vite) separately:
+
+```bash
+npm run dev:frontend
+```
+
+Frontend dev server default: `http://localhost:5173` (Vite proxies `/api` → `http://localhost:3000`)
+
+Build the frontend for production (outputs to `public/app`):
+
+```bash
+npm run build:frontend
+```
+
+If you want to serve the built frontend from a static host (separate from the API), you can use a simple static server or a separate container. Example using the `serve` package:
+
+```bash
+npm install -g serve
+serve -s public/app -l 8080
+# frontend will be available at http://localhost:8080
+```
+
+Alternatively, I can add a `frontend` Docker image/service to `docker-compose.yml` that serves the built assets if you want a fully containerised static UI.
 
 ---
 

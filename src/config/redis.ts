@@ -3,12 +3,14 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
+// Use localhost Redis in development by default so local backend talks to dockerized redis.
+// If running in production, respect REDIS_URL; in development always use localhost.
+const redisUrl = process.env.NODE_ENV === 'production' ? (process.env.REDIS_URL || 'redis://redis:6379') : 'redis://localhost:6379';
 
 const redis = new Redis(redisUrl, {
-    maxRetriesPerRequest: 3,
+    maxRetriesPerRequest: 1,
     retryStrategy(times) {
-        const delay = Math.min(times * 200, 2000);
+        const delay = Math.min(times * 200, 1000);
         return delay;
     },
 });
@@ -18,7 +20,7 @@ redis.on("connect", () => {
 });
 
 redis.on("error", (err) => {
-    console.error("Redis connection error:", err.message);
+    console.warn("Redis connection warning:", err.message);
 });
 
 export const disconnectRedis = async (): Promise<void> => {

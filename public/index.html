@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FDS API Demo</title>
+    <style>
+      :root { color-scheme: dark; font-family: Arial, sans-serif; }
+      body { margin: 0; background: #0f172a; color: #e2e8f0; }
+      main { max-width: 960px; margin: 0 auto; padding: 2rem; }
+      .card { background: #111827; border: 1px solid #334155; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+      form { display: grid; gap: 0.75rem; }
+      input, select, button { padding: 0.7rem 0.8rem; border-radius: 8px; border: 1px solid #475569; font-size: 1rem; }
+      button { background: #2563eb; color: white; cursor: pointer; }
+      button.secondary { background: #475569; }
+      pre { white-space: pre-wrap; background: #020617; padding: 0.8rem; border-radius: 8px; overflow-x: auto; }
+      .row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+      .muted { color: #94a3b8; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>FDS API Demo UI</h1>
+      <p class="muted">Use this lightweight page to register, log in, and test the protected ledger actions.</p>
+
+      <section class="card">
+        <h2>Register</h2>
+        <form id="register-form">
+          <input name="username" placeholder="Username" required />
+          <input name="email" type="email" placeholder="Email" required />
+          <input name="password" type="password" placeholder="Password" required />
+          <select name="role">
+            <option value="viewer">viewer</option>
+            <option value="analyst">analyst</option>
+            <option value="admin">admin</option>
+          </select>
+          <button type="submit">Register</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Login</h2>
+        <form id="login-form">
+          <input name="email" type="email" placeholder="Email" required />
+          <input name="password" type="password" placeholder="Password" required />
+          <div class="row">
+            <button type="submit">Login</button>
+            <button type="button" class="secondary" id="logout-btn">Logout</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Ledger Actions</h2>
+        <form id="ledger-form">
+          <input name="amount" type="number" min="1" placeholder="Amount" required />
+          <div class="row">
+            <button type="submit" data-action="deposit">Deposit</button>
+            <button type="submit" class="secondary" data-action="withdraw">Withdraw</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Dashboard</h2>
+        <div class="row">
+          <button id="summary-btn">Load Summary</button>
+          <button id="deposits-btn" class="secondary">Recent Deposits</button>
+          <button id="withdrawals-btn" class="secondary">Recent Withdrawals</button>
+        </div>
+        <pre id="response-output">No request made yet.</pre>
+      </section>
+    </main>
+
+    <script>
+      const baseUrl = '/api/v1';
+      const output = document.getElementById('response-output');
+
+      const setMessage = (message) => { output.textContent = message; };
+
+      const requestJson = async (path, options = {}) => {
+        const response = await fetch(`${baseUrl}${path}`, {
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          ...options,
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data.message || 'Request failed');
+        }
+        return data;
+      };
+
+      document.getElementById('register-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const form = new FormData(event.target);
+        const payload = Object.fromEntries(form.entries());
+        try {
+          const res = await requestJson('/auth/register', { method: 'POST', body: JSON.stringify(payload) });
+          setMessage(JSON.stringify(res, null, 2));
+        } catch (error) {
+          setMessage(error.message);
+        }
+      });
+
+      document.getElementById('login-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const form = new FormData(event.target);
+        const payload = Object.fromEntries(form.entries());
+        try {
+          const res = await requestJson('/auth/login', { method: 'POST', body: JSON.stringify(payload) });
+          setMessage(JSON.stringify(res, null, 2));
+        } catch (error) {
+          setMessage(error.message);
+        }
+      });
+
+      document.getElementById('logout-btn').addEventListener('click', async () => {
+        try {
+          const res = await requestJson('/auth/logout', { method: 'POST' });
+          setMessage(JSON.stringify(res, null, 2));
+        } catch (error) {
+          setMessage(error.message);
+        }
+      });
+
+      document.getElementById('ledger-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const form = new FormData(event.target);
+        const amount = Number(form.get('amount'));
+        const action = event.submitter?.dataset?.action || 'deposit';
+        try {
+          const res = await requestJson(`/transactions/${action}`, { method: 'POST', body: JSON.stringify({ amount }) });
+          setMessage(JSON.stringify(res, null, 2));
+        } catch (error) {
+          setMessage(error.message);
+        }
+      });
+
+      document.getElementById('summary-btn').addEventListener('click', async () => {
+        try { const res = await requestJson('/dashboard/summary'); setMessage(JSON.stringify(res, null, 2)); } catch (error) { setMessage(error.message); }
+      });
+      document.getElementById('deposits-btn').addEventListener('click', async () => {
+        try { const res = await requestJson('/dashboard/recent-deposits'); setMessage(JSON.stringify(res, null, 2)); } catch (error) { setMessage(error.message); }
+      });
+      document.getElementById('withdrawals-btn').addEventListener('click', async () => {
+        try { const res = await requestJson('/dashboard/recent-withdrawals'); setMessage(JSON.stringify(res, null, 2)); } catch (error) { setMessage(error.message); }
+      });
+    </script>
+  </body>
+</html>
